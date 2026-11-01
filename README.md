@@ -32,3 +32,18 @@ Resultado: `build/KickCraft_artefacts/Release/VST3/KickCraft.vst3`
 Copialo a `C:\Program Files\Common Files\VST3\`.
 
 JUCE es AGPLv3 / licencia comercial: revisalo si lo vas a distribuir.
+
+
+## License
+
+KickCraft is free and open-source software licensed under
+the GNU Affero General Public License v3.0 (AGPL-3.0).
+
+You are free to use, study, modify, and redistribute this
+software under the terms of the license.
+
+Modified versions and forks must comply with the AGPL-3.0.
+
+See the [LICENSE](LICENSE) file for the complete license.
+
+Copyright (C) 2026 Zoniumgames
