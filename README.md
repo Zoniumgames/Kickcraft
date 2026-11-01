@@ -1,4 +1,5 @@
 <img width="795" height="545" alt="image" src="https://github.com/user-attachments/assets/e5d54516-e390-4298-8f6e-c3d5ece17e88" />
+
 # KickCraft – Sidechain / Volume Shaper VST3 (Windows)
 
 Pon KickCraft en el sonido que quieres "bombear" (bajo, pad, synth...). No necesita señal de bombo:
