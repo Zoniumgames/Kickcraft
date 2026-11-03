@@ -37,6 +37,7 @@ private:
     std::unique_ptr<ButtonAtt> bypassAtt;
 
     int lastCurveVersion = -1;
+    bool lastActive = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (KickCraftAudioProcessorEditor)
 };

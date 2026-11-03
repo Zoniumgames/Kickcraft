@@ -53,8 +53,10 @@ public:
     float getWaveIn (int i) const  { return waveIn[(size_t) i].load(); }
     float getWaveOut (int i) const { return waveOut[(size_t) i].load(); }
 
+    bool isSignalActive() const { return signalActive.load(); }
+
     juce::AudioProcessorValueTreeState apvts;
-    std::atomic<float> uiPhase { 0.f };
+    std::atomic<float> uiPhase { 0.f };   // posicion en el ciclo (tiempo), SIN offset
 
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
@@ -76,6 +78,11 @@ private:
     float smL = 1.f, smR = 1.f;
     int lastCol = 0;
     float accIn = 0.f, accOut = 0.f;
+
+    // deteccion de silencio: si no hay audio, la interfaz se "duerme"
+    std::atomic<bool> signalActive { false };
+    bool wasActive = false;
+    int silentSamples = 1 << 30;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (KickCraftAudioProcessor)
 };

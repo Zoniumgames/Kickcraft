@@ -180,6 +180,8 @@ private:
 };
 
 // ======================= Editor de curva =======================
+// El eje X es el TIEMPO dentro del ciclo. La curva se dibuja desplazada segun el Offset,
+// y la forma de onda del audio esta en el mismo eje, asi se ve exactamente donde "muerde" el efecto.
 class CurveEditor : public juce::Component
 {
 public:
@@ -188,6 +190,8 @@ public:
     std::function<void()> onEdited;
 
     void setModel (const CurveModel& m) { model = m; repaint(); }
+    void setOffset (float o) { offset = juce::jlimit (0.f, 1.f, o); repaint(); }
+    void setPlayheadVisible (bool v) { if (v != showPlayhead) { showPlayhead = v; repaint(); } }
     void setPlayhead (float p) { if (std::abs (p - playhead) > 1.0e-4f) { playhead = p; repaint(); } }
 
     void paint (juce::Graphics& g) override
@@ -220,6 +224,7 @@ public:
             {
                 const float hi = std::sqrt (proc.getWaveIn (i))  * a.getHeight() * 0.46f;
                 const float ho = std::sqrt (proc.getWaveOut (i)) * a.getHeight() * 0.46f;
+                if (hi < 0.3f && ho < 0.3f) continue;
                 const float x = a.getX() + (float) i * cw;
                 g.setColour (Theme::textDim.withAlpha (0.40f));
                 g.fillRect (x, cy - hi, cw + 0.6f, hi * 2.f);
@@ -228,13 +233,13 @@ public:
             }
         }
 
-        // curva
+        // curva efectiva (ya desplazada por el offset)
         juce::Path curve;
         const int steps = juce::jmax (2, (int) (a.getWidth() / 2.f));
         for (int i = 0; i <= steps; ++i)
         {
-            const float nx = (float) i / (float) steps;
-            auto p = toScreen (nx, model.evaluate (nx));
+            const float t = (float) i / (float) steps;
+            auto p = toScreen (t, yAt (t));
             if (i == 0) curve.startNewSubPath (p); else curve.lineTo (p);
         }
 
@@ -249,9 +254,24 @@ public:
         g.setColour (Theme::accent);
         g.strokePath (curve, juce::PathStrokeType (2.4f));
 
-        // playhead
+        // marca de INICIO de la curva cuando hay offset
+        if (offset > 0.002f)
         {
-            const auto ph = toScreen (playhead, model.evaluate (playhead));
+            const float mx = a.getX() + offset * a.getWidth();
+            g.setColour (Theme::text.withAlpha (0.55f));
+            for (float yy = a.getY(); yy < a.getBottom(); yy += 8.f)
+                g.fillRect (mx - 0.5f, yy, 1.f, 4.f);
+            g.setFont (mkFont (9.f, true));
+            const float tw = 38.f;
+            const float tx = (mx + tw + 4.f > a.getRight()) ? mx - tw - 4.f : mx + 4.f;
+            g.drawText ("START", juce::Rectangle<float> (tx, a.getY() + 2.f, tw, 12.f),
+                        (mx + tw + 4.f > a.getRight()) ? juce::Justification::centredRight : juce::Justification::centredLeft);
+        }
+
+        // cursor de reproduccion (solo si hay audio)
+        if (showPlayhead)
+        {
+            const auto ph = toScreen (playhead, yAt (playhead));
             g.setColour (juce::Colours::white.withAlpha (0.18f));
             g.drawVerticalLine ((int) ph.x, a.getY(), a.getBottom());
             g.setColour (juce::Colours::white);
@@ -261,7 +281,7 @@ public:
         // puntos
         for (size_t i = 0; i < model.pts.size(); ++i)
         {
-            const auto p = toScreen (model.pts[i].x, model.pts[i].y);
+            const auto p = pointScreen ((int) i);
             const bool hot = ((int) i == hoverIndex || (int) i == dragIndex);
             if (hot) { g.setColour (Theme::accent.withAlpha (0.35f)); g.fillEllipse (p.x - 9.f, p.y - 9.f, 18.f, 18.f); }
             g.setColour (juce::Colours::white);
@@ -363,24 +383,51 @@ public:
 private:
     juce::Rectangle<float> area() const { return getLocalBounds().toFloat().reduced (10.f); }
 
-    juce::Point<float> toScreen (float x, float y) const
+    // valor de la curva en el instante t (0..1) del ciclo, con offset aplicado
+    float yAt (float t) const
+    {
+        float c = t - offset;
+        c -= std::floor (c);
+        return model.evaluate (c);
+    }
+
+    juce::Point<float> toScreen (float t, float y) const
     {
         auto a = area();
-        return { a.getX() + x * a.getWidth(), a.getBottom() - y * a.getHeight() };
+        return { a.getX() + t * a.getWidth(), a.getBottom() - y * a.getHeight() };
     }
+
+    // posicion en pantalla de un punto de la curva (x de la curva + offset, con vuelta)
+    juce::Point<float> pointScreen (int i) const
+    {
+        float t = model.pts[(size_t) i].x + offset;
+        if (t > 1.0001f) t -= 1.f;
+        return toScreen (t, model.pts[(size_t) i].y);
+    }
+
+    // pantalla -> coordenadas de la curva (quita el offset)
     juce::Point<float> fromScreen (juce::Point<float> p) const
     {
         auto a = area();
-        return { juce::jlimit (0.f, 1.f, (p.x - a.getX()) / a.getWidth()),
+        const float t = juce::jlimit (0.f, 1.f, (p.x - a.getX()) / a.getWidth());
+        float c = t - offset;
+        if (c < 0.f) c += 1.f;
+        return { juce::jlimit (0.f, 1.f, c),
                  juce::jlimit (0.f, 1.f, (a.getBottom() - p.y) / a.getHeight()) };
     }
+
     int hitPoint (juce::Point<float> p) const
     {
-        for (int i = (int) model.pts.size() - 1; i >= 0; --i)
-            if (toScreen (model.pts[(size_t) i].x, model.pts[(size_t) i].y).getDistanceFrom (p) < 10.f)
-                return i;
-        return -1;
+        int best = -1;
+        float bestD = 10.f;
+        for (int i = 0; i < (int) model.pts.size(); ++i)
+        {
+            const float d = pointScreen (i).getDistanceFrom (p);
+            if (d < bestD) { bestD = d; best = i; }
+        }
+        return best;
     }
+
     void commit()
     {
         proc.setCurve (model);
@@ -391,7 +438,8 @@ private:
     KickCraftAudioProcessor& proc;
     CurveModel model;
     int dragIndex = -1, hoverIndex = -1;
-    float playhead = 0.f;
+    float playhead = 0.f, offset = 0.f;
+    bool showPlayhead = false;
 };
 
 // ======================= Rejilla de presets de curva =======================

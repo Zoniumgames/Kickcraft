@@ -70,6 +70,8 @@ KickCraftAudioProcessorEditor::KickCraftAudioProcessorEditor (KickCraftAudioProc
     bypassAtt = std::make_unique<ButtonAtt> (proc.apvts, "bypass", bypassBtn);
 
     mixSlider.onValueChange = [this] { repaint (30, 292, 200, 28); };
+    offsetSlider.onValueChange = [this] { curveEditor.setOffset ((float) offsetSlider.getValue() * 0.01f); };
+    curveEditor.setOffset ((float) offsetSlider.getValue() * 0.01f);
     rateButtons.onChange = [this] (int) { repaint (20, 496, 226, 24); };
 
     curveEditor.onEdited = [this]
@@ -92,7 +94,7 @@ KickCraftAudioProcessorEditor::KickCraftAudioProcessorEditor (KickCraftAudioProc
         presetGrid.setSelected (8);
     };
 
-    startTimerHz (30);
+    startTimerHz (4);   // en reposo casi no consume; sube a 30 Hz solo cuando hay audio
 }
 
 KickCraftAudioProcessorEditor::~KickCraftAudioProcessorEditor()
@@ -112,8 +114,20 @@ void KickCraftAudioProcessorEditor::setupRotary (juce::Slider& s, bool textBelow
 
 void KickCraftAudioProcessorEditor::timerCallback()
 {
-    curveEditor.setPlayhead (proc.uiPhase.load());
-    curveEditor.repaint();   // refresca la forma de onda
+    // Sin audio: refresco lento y sin redibujar. Con audio: 30 fps.
+    const bool active = proc.isSignalActive();
+    if (active != lastActive)
+    {
+        lastActive = active;
+        startTimerHz (active ? 30 : 4);
+        curveEditor.setPlayheadVisible (active);
+        curveEditor.repaint();
+    }
+    if (active)
+    {
+        curveEditor.setPlayhead (proc.uiPhase.load());
+        curveEditor.repaint();   // refresca la forma de onda
+    }
 
     if (proc.getCurveVersion() != lastCurveVersion)
     {

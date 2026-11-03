@@ -1,5 +1,16 @@
 cmake_minimum_required(VERSION 3.22)
+# macOS: binario universal (Apple Silicon + Intel). Debe ir antes de project().
+if(APPLE)
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "")
+endif()
+
 project(KickCraft VERSION 1.0.0)
+
+set(KC_FORMATS VST3 Standalone)
+if(APPLE)
+    list(APPEND KC_FORMATS AU)
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -15,7 +26,7 @@ juce_add_plugin(KickCraft
     COMPANY_NAME "KickCraft"
     PLUGIN_MANUFACTURER_CODE Kcrf
     PLUGIN_CODE Kcr1
-    FORMATS VST3 Standalone
+    FORMATS ${KC_FORMATS}
     PRODUCT_NAME "KickCraft"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE

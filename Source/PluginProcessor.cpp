@@ -66,6 +66,9 @@ void KickCraftAudioProcessor::prepareToPlay (double sampleRate, int)
     smL = smR = 1.f;
     lastCol = 0;
     accIn = accOut = 0.f;
+    silentSamples = 1 << 30;
+    wasActive = false;
+    signalActive = false;
 }
 
 void KickCraftAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
@@ -93,6 +96,19 @@ void KickCraftAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         }
     if (bpm < 1.0) bpm = 120.0;
 
+    // Deteccion de silencio (cuesta casi nada): sin audio -> se limpia la onda y se deja de capturar
+    if (buffer.getMagnitude (0, numSamples) > 0.0005f) silentSamples = 0;
+    else silentSamples = juce::jmin (silentSamples + numSamples, 1 << 30);
+    const bool active = silentSamples < (int) (0.4 * sr);
+    if (! active && wasActive)
+    {
+        for (auto& a : waveIn)  a.store (0.f);
+        for (auto& a : waveOut) a.store (0.f);
+        accIn = accOut = 0.f;
+    }
+    wasActive = active;
+    signalActive.store (active);
+
     const bool bypass   = pBypass->load() > 0.5f;
     const float mix     = pMix->load() * 0.01f;
     const int rateIdx   = juce::jlimit (0, 4, (int) pRate->load());
@@ -117,17 +133,17 @@ void KickCraftAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 
     for (int i = 0; i < numSamples; ++i)
     {
-        double p;
+        double pt;   // posicion en el tiempo dentro del ciclo
         if (playing && havePpq)
-            p = frac ((ppq + (double) i * ppqPerSample) / beats);
+            pt = frac ((ppq + (double) i * ppqPerSample) / beats);
         else
         {
-            p = freePhase;
+            pt = freePhase;
             freePhase = frac (freePhase + cyclesPerSample);
         }
-        // Offset = mover la posicion del efecto dentro del ciclo
-        p = frac (p - offset + 1.0);
-        pLast = p;
+        // Offset = mueve la curva (el efecto) dentro del ciclo
+        const double p = frac (pt - offset + 1.0);
+        pLast = pt;
 
         const float inL = ch0[i];
         const float inR = ch1 != nullptr ? ch1[i] : inL;
@@ -145,22 +161,25 @@ void KickCraftAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             if (ch1 != nullptr) ch1[i] = outR;
         }
 
-        // Captura de forma de onda para la interfaz (plegada sobre un ciclo)
-        const int col = juce::jlimit (0, numWaveCols - 1, (int) (p * numWaveCols));
-        if (col != lastCol)
+        // Captura de forma de onda (en el tiempo del ciclo), solo si hay audio
+        if (active)
         {
-            auto upd = [] (std::atomic<float>& a, float v)
+            const int col = juce::jlimit (0, numWaveCols - 1, (int) (pt * numWaveCols));
+            if (col != lastCol)
             {
-                const float old = a.load();
-                a.store (v > old ? v : old * 0.9f + v * 0.1f);
-            };
-            upd (waveIn[(size_t) lastCol], accIn);
-            upd (waveOut[(size_t) lastCol], accOut);
-            accIn = accOut = 0.f;
-            lastCol = col;
+                auto upd = [] (std::atomic<float>& a, float v)
+                {
+                    const float old = a.load();
+                    a.store (v > old ? v : old * 0.75f + v * 0.25f);
+                };
+                upd (waveIn[(size_t) lastCol], accIn);
+                upd (waveOut[(size_t) lastCol], accOut);
+                accIn = accOut = 0.f;
+                lastCol = col;
+            }
+            accIn  = juce::jmax (accIn,  juce::jmax (std::abs (inL),  std::abs (inR)));
+            accOut = juce::jmax (accOut, juce::jmax (std::abs (outL), std::abs (outR)));
         }
-        accIn  = juce::jmax (accIn,  juce::jmax (std::abs (inL),  std::abs (inR)));
-        accOut = juce::jmax (accOut, juce::jmax (std::abs (outL), std::abs (outR)));
     }
 
     uiPhase.store ((float) pLast);
