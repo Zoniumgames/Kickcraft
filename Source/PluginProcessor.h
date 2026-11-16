@@ -7,6 +7,7 @@ class KickCraftAudioProcessor : public juce::AudioProcessor
 {
 public:
     static constexpr int numWaveCols = 256;
+    static constexpr int numThemes = 8;
 
     KickCraftAudioProcessor();
     ~KickCraftAudioProcessor() override = default;
@@ -52,6 +53,10 @@ public:
     // ---- Datos para la interfaz ----
     float getWaveIn (int i) const  { return waveIn[(size_t) i].load(); }
     float getWaveOut (int i) const { return waveOut[(size_t) i].load(); }
+
+    // ---- Tema visual ----
+    int getTheme() const;
+    void setTheme (int index);
 
     bool isSignalActive() const { return signalActive.load(); }
 

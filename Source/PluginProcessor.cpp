@@ -7,6 +7,16 @@ namespace
     const double kBeats[5] = { 4.0, 2.0, 1.0, 0.5, 0.25 };
 
     inline double frac (double x) { return x - std::floor (x); }
+
+    juce::File themeFile()
+    {
+        return KickCraftAudioProcessor::getPresetDirectory().getParentDirectory().getChildFile ("theme.txt");
+    }
+    int loadSavedTheme()
+    {
+        auto f = themeFile();
+        return f.existsAsFile() ? f.loadFileAsString().trim().getIntValue() : 0;
+    }
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout KickCraftAudioProcessor::createLayout()
@@ -247,7 +257,9 @@ void KickCraftAudioProcessor::loadPreset (int index)
     if (auto xml = juce::XmlDocument::parse (files[fi]))
         if (xml->hasTagName (apvts.state.getType()))
         {
+            const int keepTheme = getTheme();
             apvts.replaceState (juce::ValueTree::fromXml (*xml));
+            apvts.state.setProperty ("theme", keepTheme, nullptr);
             apvts.state.setProperty ("presetName", files[fi].getFileNameWithoutExtension(), nullptr);
             syncCurveFromState();
         }
@@ -274,6 +286,24 @@ juce::String KickCraftAudioProcessor::getCurrentPresetName() const
 
 bool KickCraftAudioProcessor::isFavourite() const { return (bool) apvts.state.getProperty ("fav", false); }
 void KickCraftAudioProcessor::setFavourite (bool b) { apvts.state.setProperty ("fav", b, nullptr); }
+
+// ---------------- Tema ----------------
+int KickCraftAudioProcessor::getTheme() const
+{
+    const int t = apvts.state.hasProperty ("theme") ? (int) apvts.state.getProperty ("theme") : loadSavedTheme();
+    return juce::jlimit (0, numThemes - 1, t);
+}
+
+void KickCraftAudioProcessor::setTheme (int index)
+{
+    index = juce::jlimit (0, numThemes - 1, index);
+    apvts.state.setProperty ("theme", index, nullptr);
+
+    // se recuerda para las instancias nuevas del plugin
+    auto f = themeFile();
+    f.getParentDirectory().createDirectory();
+    f.replaceWithText (juce::String (index));
+}
 
 // ---------------- Estado ----------------
 void KickCraftAudioProcessor::getStateInformation (juce::MemoryBlock& dest)

@@ -16,22 +16,25 @@ private:
     using ButtonAtt = juce::AudioProcessorValueTreeState::ButtonAttachment;
 
     void timerCallback() override;
+    void applySkin (int index);
+    void showThemeMenu();
     void showPresetMenu();
     void stepPreset (int delta);
     void askSavePreset();
     void setupRotary (juce::Slider&, bool textBelow);
 
     KickCraftAudioProcessor& proc;
-    SPLookAndFeel laf;
+    SkinLAF laf;
+    const Skin* skin = &allSkins()[0];
+    int skinIndex = 0;
 
+    LogoButton logo;
     juce::Slider mixSlider, offsetSlider;
     ChoiceButtons rateButtons;
     CurveEditor curveEditor;
     PresetGrid presetGrid;
     NameBox nameBox;
-    juce::ArrowButton presetPrev { "prevP", 0.5f, Theme::textDim };
-    juce::ArrowButton presetNext { "nextP", 0.0f, Theme::textDim };
-    IconButton favBtn, saveBtn, resetBtn, bypassBtn;
+    IconButton prevBtn, nextBtn, favBtn, saveBtn, resetBtn, bypassBtn;
 
     std::unique_ptr<SliderAtt> mixAtt, offsetAtt;
     std::unique_ptr<ButtonAtt> bypassAtt;
