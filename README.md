@@ -31,6 +31,24 @@ el efecto se sincroniza solo con el tempo y el compás del DAW.
 - Con audio, la interfaz se refresca a 30 fps.
 - Con la ventana del plugin cerrada, la interfaz no existe y no consume nada.
 
+
+## Temas
+Haz clic en el logo **KickCraft** para cambiar el aspecto del plugin. Cada tema cambia por completo colores, perillas, botones, paneles, rejilla y tipografía:
+
+| Tema | Estilo |
+|---|---|
+| **Default** | Minimalista negro y naranja |
+| **Mango Studio** | Gris azulado, perillas 3D y botones biselados |
+| **Alberto** | Gris claro plano, botones cuadrados y acento ámbar |
+| **Devils** | Carbón utilitario, acento rojo y tipografía monoespaciada |
+| **Bro Tools** | Grafito frío, azul, botones segmentados y perillas plateadas |
+| **Logico** | Aluminio cepillado, botones en pastilla y azul cielo |
+| **Lunatic** | Violeta profundo, cristal y neón |
+| **Razor** | Rack de hardware con tornillos y pantalla LCD ámbar |
+
+El tema se guarda con tu proyecto y se recuerda para las instancias nuevas.
+
+
 ## Compilar (Windows, macOS y Linux)
 Opción A (sin instalar nada): sube la carpeta a un repo de GitHub. El workflow `.github/workflows/build.yml` compila los tres sistemas en paralelo (*Actions > Build KickCraft > Run workflow*) y deja un resultado por sistema en *Artifacts*:
 
