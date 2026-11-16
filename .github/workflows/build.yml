@@ -3,6 +3,7 @@ name: Build KickCraft (Windows, macOS, Linux)
 on:
   workflow_dispatch:
 
+
 jobs:
   windows:
     runs-on: windows-2022
