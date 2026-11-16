@@ -32,7 +32,7 @@ el efecto se sincroniza solo con el tempo y el compás del DAW.
 - Con la ventana del plugin cerrada, la interfaz no existe y no consume nada.
 
 
-## Temas
+## Temas Inspirados en otros DAW´s
 Haz clic en el logo **KickCraft** para cambiar el aspecto del plugin. Cada tema cambia por completo colores, perillas, botones, paneles, rejilla y tipografía:
 
 | Tema | Estilo |
@@ -47,6 +47,7 @@ Haz clic en el logo **KickCraft** para cambiar el aspecto del plugin. Cada tema 
 | **Razor** | Rack de hardware con tornillos y pantalla LCD ámbar |
 
 El tema se guarda con tu proyecto y se recuerda para las instancias nuevas.
+<img width="1008" height="684" alt="image" src="https://github.com/user-attachments/assets/90fd41a2-b2e8-4a44-bbf1-8bed23fa2e5e" />
 
 
 ## Compilar (Windows, macOS y Linux)
